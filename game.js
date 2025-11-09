@@ -154,21 +154,22 @@ class Game {
 
         if (event && typeof event.beta === 'number' && typeof event.gamma === 'number') {
             const { beta, gamma } = event;
-            const threshold = 45;
+            const absBeta = Math.abs(beta);
+            const absGamma = Math.abs(gamma);
 
-            // Prioritize landscape detection since it's more distinct on the gamma axis.
-            if (Math.abs(gamma) > threshold) {
-                // We are likely in landscape mode.
-                if (gamma > threshold) {
+            // Determine if the phone is primarily in landscape or portrait orientation
+            if (absGamma > absBeta) {
+                // More tilt on gamma axis, likely landscape
+                if (gamma > 30) {
                     orientationType = 'landscape-secondary'; // Rotated right (yellow)
-                } else { // gamma < -threshold
+                } else if (gamma < -30) {
                     orientationType = 'landscape-primary'; // Rotated left (green)
                 }
-            } else if (Math.abs(beta) > threshold) {
-                // If not landscape, check for portrait mode.
-                if (beta > threshold && beta < 135) {
+            } else {
+                // More tilt on beta axis, likely portrait
+                if (beta > 30) {
                     orientationType = 'portrait-primary'; // Upright (blue)
-                } else if (beta < -threshold && beta > -135) {
+                } else if (beta < -30) {
                     orientationType = 'portrait-secondary'; // Upside down (red)
                 }
             }
