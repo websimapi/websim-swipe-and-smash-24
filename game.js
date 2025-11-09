@@ -154,21 +154,22 @@ class Game {
 
         if (event && typeof event.beta === 'number' && typeof event.gamma === 'number') {
             const { beta, gamma } = event;
-            const portraitThreshold = 60;
-            const landscapeThreshold = 60;
+            const threshold = 45; // degrees
 
-            // Check for portrait orientations first, as they are typically more distinct.
-            if (beta > portraitThreshold) {
-                orientationType = 'portrait-primary'; // Upright
-            } else if (beta < -portraitThreshold) {
-                orientationType = 'portrait-secondary'; // Upside down
-            } 
-            // Then, check for landscape orientations, ensuring we're not in a portrait-like tilt.
-            else if (Math.abs(beta) < 30) {
-                if (gamma > landscapeThreshold) {
-                    orientationType = 'landscape-secondary'; // Rotated right
-                } else if (gamma < -landscapeThreshold) {
-                    orientationType = 'landscape-primary'; // Rotated left
+            // Determine primary orientation by comparing absolute values of beta and gamma
+            if (Math.abs(gamma) > Math.abs(beta)) {
+                // More tilt on gamma axis, likely landscape
+                if (gamma > threshold) {
+                    orientationType = 'landscape-secondary'; // Rotated right (Yellow)
+                } else if (gamma < -threshold) {
+                    orientationType = 'landscape-primary'; // Rotated left (Green)
+                }
+            } else {
+                // More tilt on beta axis, likely portrait
+                if (beta > threshold) {
+                    orientationType = 'portrait-primary'; // Upright (Blue)
+                } else if (beta < -threshold) {
+                    orientationType = 'portrait-secondary'; // Upside down (Red)
                 }
             }
         } else {
