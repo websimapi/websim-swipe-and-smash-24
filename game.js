@@ -156,16 +156,16 @@ class Game {
             const { beta, gamma } = event;
             const threshold = 45;
 
-            // Determine if it's primarily landscape or portrait by seeing which angle is more pronounced
-            if (Math.abs(gamma) > Math.abs(beta)) {
-                // Landscape mode
+            // Prioritize landscape detection since it's more distinct on the gamma axis.
+            if (Math.abs(gamma) > threshold) {
+                // We are likely in landscape mode.
                 if (gamma > threshold) {
                     orientationType = 'landscape-secondary'; // Rotated right (yellow)
-                } else if (gamma < -threshold) {
+                } else { // gamma < -threshold
                     orientationType = 'landscape-primary'; // Rotated left (green)
                 }
-            } else {
-                // Portrait mode
+            } else if (Math.abs(beta) > threshold) {
+                // If not landscape, check for portrait mode.
                 if (beta > threshold && beta < 135) {
                     orientationType = 'portrait-primary'; // Upright (blue)
                 } else if (beta < -threshold && beta > -135) {
