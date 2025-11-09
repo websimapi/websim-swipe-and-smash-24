@@ -156,18 +156,21 @@ class Game {
             const { beta, gamma } = event;
             const landscapeThreshold = 45;
             const portraitThreshold = 45;
+            const tiltThreshold = 45; // Maximum beta tilt allowed for landscape detection
 
-            // Check for landscape orientations first, as gamma is more reliable for landscape detection
-            if (gamma > landscapeThreshold) {
-                orientationType = 'landscape-secondary'; // Rotated right
-            } else if (gamma < -landscapeThreshold) {
-                orientationType = 'landscape-primary'; // Rotated left
+            // Check for landscape orientations - require beta to be near 0 (not tilted forward/back)
+            if (Math.abs(beta) < tiltThreshold && gamma > landscapeThreshold) {
+                orientationType = 'landscape-secondary'; // Rotated right (yellow)
+            } else if (Math.abs(beta) < tiltThreshold && gamma < -landscapeThreshold) {
+                orientationType = 'landscape-primary'; // Rotated left (green)
             } 
-            // Only check portrait if we're not in landscape mode
-            else if (beta > portraitThreshold) {
-                orientationType = 'portrait-primary'; // Upright
-            } else if (beta < -portraitThreshold) {
-                orientationType = 'portrait-secondary'; // Upside down
+            // Check portrait orientations - require gamma to be near 0 (not rotated left/right)
+            else if (Math.abs(gamma) < landscapeThreshold && beta > -portraitThreshold && beta < portraitThreshold) {
+                orientationType = 'portrait-primary'; // Upright (blue)
+            } else if (Math.abs(gamma) < landscapeThreshold && (beta > 180 - portraitThreshold || beta < -180 + portraitThreshold)) {
+                orientationType = 'portrait-secondary'; // Upside down (red)
+            } else if (Math.abs(gamma) < landscapeThreshold && beta < -portraitThreshold) {
+                orientationType = 'portrait-secondary'; // Upside down (red)
             }
         } else {
              // Fallback to screen.orientation if gyroscope data is not available
