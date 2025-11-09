@@ -58,8 +58,8 @@ class Game {
         this.inputHandler = new InputHandler(this.board.boardElement, this.onSwap.bind(this), this.onSmash.bind(this));
         
         this.setupUI();
-        this.setupOrientationListener();
-        this.updateOrientationIndicator();
+        // this.setupOrientationListener(); // Will be called after permission is granted.
+        this.updateOrientationIndicator(); // Sets initial default color
         this.updateScore(0);
         this.updateSmashUI();
         this.initializeBoard();
@@ -112,8 +112,30 @@ class Game {
         }, 500); // Small delay for visual clarity
     }
 
-    setupOrientationListener() {
-        if (window.screen && window.screen.orientation) {
+    async requestOrientationPermission() {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            try {
+                const permissionState = await DeviceOrientationEvent.requestPermission();
+                if (permissionState === 'granted') {
+                    this.setupOrientationListener();
+                } else {
+                    console.warn('Permission for device orientation not granted. Falling back to screen.orientation API.');
+                    this.setupOrientationListener(true); // Fallback
+                }
+            } catch (error) {
+                console.error('Error requesting device orientation permission:', error);
+                this.setupOrientationListener(true); // Fallback on error
+            }
+        } else {
+            // For browsers that don't require permission or don't have the API
+            this.setupOrientationListener();
+        }
+    }
+
+    setupOrientationListener(useScreenApi = false) {
+        if (!useScreenApi && window.DeviceOrientationEvent) {
+             window.addEventListener('deviceorientation', (event) => this.updateOrientationIndicator(event));
+        } else if (window.screen && window.screen.orientation) {
             try {
                  window.screen.orientation.addEventListener('change', () => this.updateOrientationIndicator());
             } catch(e) {
@@ -126,9 +148,32 @@ class Game {
         }
     }
 
-    updateOrientationIndicator() {
+    updateOrientationIndicator(event) {
         let color = '#ccc'; // Default color
-        let orientationType = window.screen.orientation ? window.screen.orientation.type : this.getLegacyOrientation();
+        let orientationType = 'unknown';
+
+        if (event && typeof event.beta === 'number' && typeof event.gamma === 'number') {
+            const { beta, gamma } = event;
+            const threshold = 45;
+
+            // Check absolute values to determine if it's primarily portrait or landscape
+            if (Math.abs(gamma) > Math.abs(beta)) { // More tilt left/right than front/back = landscape
+                if (gamma > threshold) {
+                    orientationType = 'landscape-secondary'; // Rotated right
+                } else if (gamma < -threshold) {
+                    orientationType = 'landscape-primary'; // Rotated left
+                }
+            } else { // More tilt front/back than left/right = portrait
+                if (beta > threshold) {
+                    orientationType = 'portrait-primary';
+                } else if (beta < -threshold) {
+                    orientationType = 'portrait-secondary';
+                }
+            }
+        } else {
+             // Fallback to screen.orientation if gyroscope data is not available
+            orientationType = window.screen.orientation ? window.screen.orientation.type : this.getLegacyOrientation();
+        }
 
         switch (orientationType) {
             case 'portrait-primary':
@@ -166,7 +211,10 @@ class Game {
     }
 
     setupUI() {
-        document.getElementById('start-button').addEventListener('click', () => this.startGame());
+        document.getElementById('start-button').addEventListener('click', async () => {
+            await this.requestOrientationPermission();
+            this.startGame();
+        });
     }
 
     startTimer() {
