@@ -154,23 +154,20 @@ class Game {
 
         if (event && typeof event.beta === 'number' && typeof event.gamma === 'number') {
             const { beta, gamma } = event;
-            const threshold = 45; // degrees
+            const landscapeThreshold = 45;
+            const portraitThreshold = 45;
 
-            // Determine primary orientation by comparing absolute values of beta and gamma
-            if (Math.abs(gamma) > Math.abs(beta)) {
-                // More tilt on gamma axis, likely landscape
-                if (gamma > threshold) {
-                    orientationType = 'landscape-secondary'; // Rotated right (Yellow)
-                } else if (gamma < -threshold) {
-                    orientationType = 'landscape-primary'; // Rotated left (Green)
-                }
-            } else {
-                // More tilt on beta axis, likely portrait
-                if (beta > threshold) {
-                    orientationType = 'portrait-primary'; // Upright (Blue)
-                } else if (beta < -threshold) {
-                    orientationType = 'portrait-secondary'; // Upside down (Red)
-                }
+            // Check for landscape orientations first, as gamma is more reliable for landscape detection
+            if (gamma > landscapeThreshold) {
+                orientationType = 'landscape-secondary'; // Rotated right
+            } else if (gamma < -landscapeThreshold) {
+                orientationType = 'landscape-primary'; // Rotated left
+            } 
+            // Only check portrait if we're not in landscape mode
+            else if (beta > portraitThreshold) {
+                orientationType = 'portrait-primary'; // Upright
+            } else if (beta < -portraitThreshold) {
+                orientationType = 'portrait-secondary'; // Upside down
             }
         } else {
              // Fallback to screen.orientation if gyroscope data is not available
