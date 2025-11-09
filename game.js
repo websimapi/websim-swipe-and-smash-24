@@ -154,20 +154,24 @@ class Game {
 
         if (event && typeof event.beta === 'number' && typeof event.gamma === 'number') {
             const { beta, gamma } = event;
-            const threshold = 45;
+            // The threshold at which we consider the device to be in a specific orientation.
+            const primaryThreshold = 35; 
+            // A dead-zone to prevent flickering between orientations.
+            const deadZone = 10; 
 
-            // Check absolute values to determine if it's primarily portrait or landscape
-            if (Math.abs(gamma) > Math.abs(beta)) { // More tilt left/right than front/back = landscape
-                if (gamma > threshold) {
-                    orientationType = 'landscape-secondary'; // Rotated right
-                } else if (gamma < -threshold) {
-                    orientationType = 'landscape-primary'; // Rotated left
+            if (Math.abs(gamma) > primaryThreshold) {
+                // Prioritize landscape detection
+                if (gamma < -primaryThreshold) {
+                    orientationType = 'landscape-primary'; // Rotated left (Green)
+                } else if (gamma > primaryThreshold) {
+                    orientationType = 'landscape-secondary'; // Rotated right (Yellow)
                 }
-            } else { // More tilt front/back than left/right = portrait
-                if (beta > threshold) {
-                    orientationType = 'portrait-primary';
-                } else if (beta < -threshold) {
-                    orientationType = 'portrait-secondary';
+            } else if (Math.abs(beta) > primaryThreshold) {
+                // Fallback to portrait detection
+                if (beta > primaryThreshold) {
+                    orientationType = 'portrait-primary'; // Upright (Blue)
+                } else if (beta < -primaryThreshold) {
+                    orientationType = 'portrait-secondary'; // Upside down (Red)
                 }
             }
         } else {
