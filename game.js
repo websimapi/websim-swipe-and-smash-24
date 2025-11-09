@@ -154,24 +154,21 @@ class Game {
 
         if (event && typeof event.beta === 'number' && typeof event.gamma === 'number') {
             const { beta, gamma } = event;
-            // The threshold at which we consider the device to be in a specific orientation.
-            const primaryThreshold = 35; 
-            // A dead-zone to prevent flickering between orientations.
-            const deadZone = 10; 
+            const portraitThreshold = 60;
+            const landscapeThreshold = 60;
 
-            if (Math.abs(gamma) > primaryThreshold) {
-                // Prioritize landscape detection
-                if (gamma < -primaryThreshold) {
-                    orientationType = 'landscape-primary'; // Rotated left (Green)
-                } else if (gamma > primaryThreshold) {
-                    orientationType = 'landscape-secondary'; // Rotated right (Yellow)
-                }
-            } else if (Math.abs(beta) > primaryThreshold) {
-                // Fallback to portrait detection
-                if (beta > primaryThreshold) {
-                    orientationType = 'portrait-primary'; // Upright (Blue)
-                } else if (beta < -primaryThreshold) {
-                    orientationType = 'portrait-secondary'; // Upside down (Red)
+            // Check for portrait orientations first, as they are typically more distinct.
+            if (beta > portraitThreshold) {
+                orientationType = 'portrait-primary'; // Upright
+            } else if (beta < -portraitThreshold) {
+                orientationType = 'portrait-secondary'; // Upside down
+            } 
+            // Then, check for landscape orientations, ensuring we're not in a portrait-like tilt.
+            else if (Math.abs(beta) < 30) {
+                if (gamma > landscapeThreshold) {
+                    orientationType = 'landscape-secondary'; // Rotated right
+                } else if (gamma < -landscapeThreshold) {
+                    orientationType = 'landscape-primary'; // Rotated left
                 }
             }
         } else {
