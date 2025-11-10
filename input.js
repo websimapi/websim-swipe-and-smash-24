@@ -11,6 +11,7 @@ export default class InputHandler {
         this.holdTimeout = null;
         this.moved = false;
         this.enabled = false;
+        this.rotation = 0;
 
         // Bind event handlers once to ensure they can be removed correctly
         this.boundHandlePointerDown = this.handlePointerDown.bind(this);
@@ -28,6 +29,10 @@ export default class InputHandler {
         if (!this.enabled) return;
         this.enabled = false;
         this.boardElement.parentElement.removeEventListener('pointerdown', this.boundHandlePointerDown);
+    }
+
+    setRotation(degrees) {
+        this.rotation = degrees;
     }
 
     handlePointerDown(e) {
@@ -72,17 +77,27 @@ export default class InputHandler {
         const swipeThreshold = 20; // Minimum pixels to be considered a swipe
 
         if (this.moved && (Math.abs(dx) > swipeThreshold || Math.abs(dy) > swipeThreshold)) {
-            // A swipe has been detected, determine direction
+            // Determine screen-based swipe direction
+            let screenDirection;
+            if (Math.abs(dx) > Math.abs(dy)) {
+                screenDirection = dx > 0 ? 'right' : 'left';
+            } else {
+                screenDirection = dy > 0 ? 'down' : 'up';
+            }
+
+            // The board is always oriented upright to the user, so the screen direction
+            // is the same as the board direction.
+            const boardDirection = screenDirection;
+
             let endRow, endCol;
             const startRow = parseInt(this.startCandy.dataset.row);
             const startCol = parseInt(this.startCandy.dataset.col);
 
-            if (Math.abs(dx) > Math.abs(dy)) { // Horizontal swipe
-                endRow = startRow;
-                endCol = startCol + (dx > 0 ? 1 : -1);
-            } else { // Vertical swipe
-                endRow = startRow + (dy > 0 ? 1 : -1);
-                endCol = startCol;
+            switch (boardDirection) {
+                case 'up':    endRow = startRow - 1; endCol = startCol;     break;
+                case 'down':  endRow = startRow + 1; endCol = startCol;     break;
+                case 'left':  endRow = startRow;     endCol = startCol - 1; break;
+                case 'right': endRow = startRow;     endCol = startCol + 1; break;
             }
 
             // Find the candy at the target position

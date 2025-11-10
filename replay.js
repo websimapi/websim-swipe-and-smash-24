@@ -2,6 +2,38 @@ import Board from './board.js';
 import * as recorder from './recorder.js';
 import { playSound, playBackgroundMusic } from './audio.js';
 
+const ORIENTATIONS = ['portrait-primary', 'landscape-primary', 'portrait-secondary', 'landscape-secondary'];
+
+function getOrientationColor(orientation) {
+    switch (orientation) {
+        case 'portrait-primary': return '#4285F4'; // Blue
+        case 'landscape-primary': return '#34A853'; // Green
+        case 'portrait-secondary': return '#EA4335'; // Red
+        case 'landscape-secondary': return '#FBBC05'; // Yellow
+        default: return '#ccc';
+    }
+}
+
+function getOrientationRotation(orientation) {
+    switch (orientation) {
+        case 'portrait-primary': return 0;
+        case 'landscape-primary': return 90;
+        case 'portrait-secondary': return 180;
+        case 'landscape-secondary': return 270; // Use 270 instead of -90 for consistency
+        default: return 0;
+    }
+}
+
+function getIndicatorPosition(orientation) {
+    switch (orientation) {
+        case 'portrait-primary': return { top: '-5px', left: '-5px', right: 'auto', bottom: 'auto' };
+        case 'landscape-primary': return { top: '-5px', right: '-5px', left: 'auto', bottom: 'auto' };
+        case 'portrait-secondary': return { bottom: '-5px', right: '-5px', top: 'auto', left: 'auto' };
+        case 'landscape-secondary': return { bottom: '-5px', left: '-5px', top: 'auto', right: 'auto' };
+        default: return { top: '-5px', left: '-5px', right: 'auto', bottom: 'auto' };
+    }
+}
+
 export default class Replay {
     constructor(game, config) {
         this.game = game;
@@ -17,6 +49,8 @@ export default class Replay {
             startTime: 0,
             actions: [],
             currentReplayBoard: null,
+            lastRequiredOrientation: 'portrait-primary',
+            lastCurrentOrientation: 'portrait-primary',
         };
 
         this.setupUI();
@@ -35,6 +69,51 @@ export default class Replay {
             this.resume();
         } else {
             this.pause();
+        }
+    }
+
+    updateReplayOrientation() {
+        const requiredIndicator = document.getElementById('replay-required-orientation-indicator');
+        const currentIndicator = document.getElementById('replay-orientation-indicator');
+        const board = document.getElementById('replay-board');
+        const container = document.getElementById('replay-container');
+        const combo = document.getElementById('replay-combo-display');
+
+        const rotation = getOrientationRotation(this.state.lastRequiredOrientation);
+        
+        if (container) {
+            // container.style.transform = `rotate(${rotation}deg)`; // No longer rotating container
+        }
+
+        if (requiredIndicator) {
+            requiredIndicator.style.backgroundColor = getOrientationColor(this.state.lastRequiredOrientation);
+            const requiredPos = getIndicatorPosition(this.state.lastRequiredOrientation);
+            Object.assign(requiredIndicator.style, requiredPos);
+        }
+         if (currentIndicator) {
+            currentIndicator.style.backgroundColor = getOrientationColor(this.state.lastCurrentOrientation);
+            const currentPos = getIndicatorPosition(this.state.lastCurrentOrientation);
+            Object.assign(currentIndicator.style, currentPos);
+        }
+
+        if (board) {
+            board.style.borderColor = getOrientationColor(this.state.lastCurrentOrientation);
+            // Rotate candies on replay board
+            board.querySelectorAll('.replay-candy').forEach(candy => {
+                candy.style.transform = `rotate(${rotation}deg)`;
+            });
+        }
+
+        if (combo) {
+            // Re-apply combo transform based on its state
+            const isRainbow = combo.classList.contains('rainbow');
+            const isVisible = combo.classList.contains('visible');
+            let scale = 'scale(0.8)';
+            if (isVisible && !isRainbow) scale = 'scale(1.2)';
+            if (isRainbow) scale = 'scale(1)';
+
+            const translate = isRainbow ? 'translate(0, 0)' : 'translate(-50%, -50%)';
+            combo.style.transform = `${translate} rotate(0deg) ${scale}`;
         }
     }
 
@@ -68,6 +147,11 @@ export default class Replay {
         if (comboDisplay) {
             comboDisplay.remove();
         }
+
+        // Reset orientation on hide
+        this.state.lastRequiredOrientation = 'portrait-primary';
+        this.state.lastCurrentOrientation = 'portrait-primary';
+        this.updateReplayOrientation();
 
         // Force cleanup of any lingering replay candy elements
         const lingeringCandies = document.querySelectorAll('.replay-candy');
@@ -118,6 +202,9 @@ export default class Replay {
         this.state.startTime = performance.now();
         this.state.actions = [...recording.actions];
         this.state.currentReplayBoard = replayBoard; // Store for resume
+        this.state.lastRequiredOrientation = 'portrait-primary';
+        this.state.lastCurrentOrientation = 'portrait-primary';
+
         playPauseButton.innerHTML = '&#10074;&#10074;'; // Pause icon
         playPauseButton.classList.remove('visible');
         
@@ -165,6 +252,14 @@ export default class Replay {
                     }
                 } else if (action.type === 'initialCascade') {
                     await replayBoard.processMatches(false, null);
+                } else if (action.type === 'orientationChange') {
+                    this.state.lastRequiredOrientation = action.orientation;
+                    const rotation = getOrientationRotation(action.orientation);
+                    replayBoard.setRotation(rotation);
+                    this.updateReplayOrientation();
+                } else if (action.type === 'currentOrientationChange') {
+                    this.state.lastCurrentOrientation = action.orientation;
+                    this.updateReplayOrientation();
                 } else if (action.type === 'sound') {
                     playSound(action.name);
                 } else if (action.type === 'startRainbow') {
@@ -256,6 +351,21 @@ export default class Replay {
         comboDisplay.textContent = `Combo x${count}`;
         comboDisplay.classList.add('visible');
 
+        // We need to find the *current* orientation to apply the correct rotation transform.
+        const recording = recorder.getRecording();
+        let lastOrientation = 'portrait-primary';
+        if (recording && recording.actions) {
+            const timeSoFar = performance.now() - this.state.startTime;
+            const lastOrientationAction = [...recording.actions]
+                .reverse()
+                .find(a => a.type === 'orientationChange' && a.timestamp <= timeSoFar);
+            if (lastOrientationAction) {
+                lastOrientation = lastOrientationAction.orientation;
+            }
+        }
+        // This call will correctly rotate the combo display.
+        this.updateReplayOrientation();
+
         if (isRainbow) {
             comboDisplay.classList.add('rainbow');
         } else {
@@ -278,7 +388,7 @@ export default class Replay {
         }
         clearTimeout(this.controlsTimeout);
         clearTimeout(this.comboTimeout);
-        this.state = { isPlaying: false, isPaused: false, pauseTime: 0, startTime: 0, actions: [], currentReplayBoard: null };
+        this.state = { isPlaying: false, isPaused: false, pauseTime: 0, startTime: 0, actions: [], currentReplayBoard: null, lastRequiredOrientation: 'portrait-primary', lastCurrentOrientation: 'portrait-primary' };
 
         const playPauseButton = document.getElementById('play-pause-button');
         playPauseButton.innerHTML = '&#9658;'; // Play icon

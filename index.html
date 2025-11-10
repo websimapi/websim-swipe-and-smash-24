@@ -15,13 +15,12 @@
 </head>
 <body>
     <div id="game-container">
-        <div id="orientation-indicator"></div>
-        <h1>Swipe and Smash</h1>
-        <p class="subtitle">Candy Mash</p>
-        <div class="info">
+        <div id="info">
             <div id="score-container">Score: <span id="score">0</span></div>
         </div>
         <div id="game-board-container">
+            <div id="orientation-indicator"></div>
+            <div id="required-orientation-indicator"></div>
             <div id="combo-display"></div>
             <div id="game-board"></div>
             <div id="start-overlay">
@@ -44,6 +43,8 @@
     </div>
     <div id="replay-modal" class="hidden">
         <div id="replay-container">
+            <div id="replay-orientation-indicator"></div>
+            <div id="replay-required-orientation-indicator"></div>
             <div id="replay-board"></div>
             <div id="replay-controls">
                 <button id="play-pause-button">&#9658;</button> <!-- Play Icon -->

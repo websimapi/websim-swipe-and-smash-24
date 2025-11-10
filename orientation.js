@@ -1,6 +1,7 @@
 export default class OrientationHandler {
-    constructor(indicatorElement) {
+    constructor(indicatorElement, onOrientationChange) {
         this.indicatorElement = indicatorElement;
+        this.onOrientationChange = onOrientationChange || (() => {});
         this.updateIndicator(); // Set initial color
     }
 
@@ -87,6 +88,8 @@ export default class OrientationHandler {
         if (this.indicatorElement) {
             this.indicatorElement.style.backgroundColor = color;
         }
+
+        this.onOrientationChange(orientationType);
     }
 
     getLegacyOrientation() {
